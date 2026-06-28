@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "empyrical-reloaded>=0.5.11"]
+dev = ["pytest>=8", "empyrical-reloaded>=0.5.11", "ruff>=0.4", "pyright>=1.1"]
 
 [project.scripts]
 portfolio-mcp = "portfolio_risk.server.mcp_server:main"
