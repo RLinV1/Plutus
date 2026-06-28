@@ -1,0 +1,43 @@
+[project]
+name = "stock-research-assistant"
+version = "0.1.0"
+description = "Beginner-friendly AI stock research assistant: MCP server + RAG + Claude agent + eval harness"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "mcp>=1.2",
+    "anthropic[mcp]>=0.40",
+    "yfinance>=0.2.40",
+    "pandas>=2.1",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "pyarrow>=15",
+    "chromadb>=0.5",
+    "sentence-transformers>=2.7",
+    "python-dotenv>=1.0",
+    "requests>=2.31",
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "redis>=5",
+    "sqlalchemy>=2",
+    "psycopg[binary]>=3",
+    "pgvector>=0.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "empyrical-reloaded>=0.5.11"]
+
+[project.scripts]
+portfolio-mcp = "portfolio_risk.server.mcp_server:main"
+portfolio-agent = "portfolio_risk.agent.client:main"
+stock-api = "api.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/portfolio_risk", "api"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,27 @@
+{
+  "name": "PortfolioRisk MCP",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  // Deps are baked into the image; this re-links the editable install against
+  // the mounted source so imports resolve to your working tree.
+  "postCreateCommand": "pip install -e \".[dev]\" && python -c \"from portfolio_risk import db; db.init_db()\" ; python -m portfolio_risk.rag.ingest || true",
+  "remoteEnv": {
+    "USE_MOCK_DATA": "1",
+    "USE_MOCK_LLM": "auto"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["tests"],
+        "editor.formatOnSave": false
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  }
+}

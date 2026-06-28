@@ -1,0 +1,65 @@
+# Elastic Beanstalk production compose.
+# Do NOT rename this to docker-compose.yml manually — use scripts/eb-deploy.sh.
+#
+# Postgres + Redis run as containers on the EB instance.
+# For higher durability, replace postgres with RDS by setting DATABASE_URL
+# to your RDS endpoint and removing the postgres service + pgdata volume.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      USE_MOCK_DATA: "${USE_MOCK_DATA:-0}"
+      USE_MOCK_LLM: "${USE_MOCK_LLM:-auto}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      HF_HOME: /opt/hf-cache
+      REDIS_URL: "redis://redis:6379/0"
+      DATABASE_URL: "${DATABASE_URL:-postgresql+psycopg://stock:${POSTGRES_PASSWORD:-stock}@postgres:5432/stock}"
+      RAG_BACKEND: "${RAG_BACKEND:-pgvector}"
+      ALERT_POLL_SEC: "${ALERT_POLL_SEC:-20}"
+      RUN_ALERTS_LOOP: "1"
+    command: uvicorn api.server:app --host 0.0.0.0 --port 8000
+    volumes:
+      - hf-cache:/opt/hf-cache
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: "stock"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-stock}"
+      POSTGRES_DB: "stock"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+
+volumes:
+  hf-cache:
+  pgdata:

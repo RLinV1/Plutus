@@ -1,0 +1,100 @@
+name: Deploy to AWS (Elastic Beanstalk)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+  workflow_dispatch:          # manual trigger from GitHub UI
+
+env:
+  AWS_REGION: us-east-1       # change to your target region
+
+# Required GitHub secrets (Settings → Secrets and variables → Actions):
+#   AWS_ACCESS_KEY_ID        — IAM key with ElasticBeanstalk:* + S3 permissions
+#   AWS_SECRET_ACCESS_KEY    — matching secret
+#   ANTHROPIC_API_KEY        — real Claude key (stored in EB env vars via console,
+#                              NOT committed here — add directly in EB console or
+#                              via `eb setenv ANTHROPIC_API_KEY=...`)
+#
+# Required GitHub variables (Settings → Secrets and variables → Actions → Variables):
+#   EB_APP_NAME              — your EB application name
+#   EB_ENV_NAME              — your EB environment name
+
+jobs:
+  # ── Gate: CI must pass first ──────────────────────────────────────────────
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  # ── Deploy to Elastic Beanstalk ───────────────────────────────────────────
+  deploy:
+    name: Deploy to Elastic Beanstalk
+    runs-on: ubuntu-latest
+    needs: ci
+    environment: production     # optional: require manual approval in GitHub
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Python (for awsebcli)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"   # awsebcli works best on 3.12
+
+      - name: Install EB CLI
+        run: pip install awsebcli --quiet
+
+      # EB requires the deploy file to be named docker-compose.yml,
+      # so we swap in the AWS-specific compose (same trick as scripts/eb-deploy.sh)
+      - name: Swap in AWS compose file
+        run: |
+          cp docker-compose.yml docker-compose.dev.yml
+          cp docker-compose.aws.yml docker-compose.yml
+
+      - name: Initialize EB app (idempotent)
+        run: |
+          eb init "${{ vars.EB_APP_NAME }}" \
+            --region "${{ env.AWS_REGION }}" \
+            --platform "Docker" \
+            --no-interactive
+
+      - name: Fetch secrets from AWS Secrets Manager
+        run: |
+          ANTHROPIC_KEY=$(aws secretsmanager get-secret-value \
+            --secret-id plutus/anthropic-api-key \
+            --query SecretString --output text)
+          POSTGRES_PASS=$(aws secretsmanager get-secret-value \
+            --secret-id plutus/postgres-password \
+            --query SecretString --output text)
+          eb setenv \
+            ANTHROPIC_API_KEY="$ANTHROPIC_KEY" \
+            POSTGRES_PASSWORD="$POSTGRES_PASS" \
+            --no-confirm
+
+      - name: Deploy to EB environment
+        run: |
+          eb deploy "${{ vars.EB_ENV_NAME }}" \
+            --timeout 20 \
+            --label "gh-${{ github.sha }}"
+
+      - name: Restore original compose file
+        if: always()          # restore even if deploy fails
+        run: |
+          cp docker-compose.dev.yml docker-compose.yml
+          rm -f docker-compose.dev.yml
+
+      - name: Deployment summary
+        run: |
+          echo "### Deployed to Elastic Beanstalk :rocket:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **SHA**: \`${GITHUB_SHA::7}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **App**: \`${{ vars.EB_APP_NAME }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Env**: \`${{ vars.EB_ENV_NAME }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Region**: \`${{ env.AWS_REGION }}\`" >> "$GITHUB_STEP_SUMMARY"

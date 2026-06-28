@@ -1,0 +1,19 @@
+# Files excluded from the EB deployment zip.
+.git/
+.venv/
+node_modules/
+frontend/node_modules/
+data/cache/
+data/*.db
+data/*.parquet
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.env
+.env.local
+.devcontainer/
+evals/
+tests/
+docs/
+frontend/smoke-shots/

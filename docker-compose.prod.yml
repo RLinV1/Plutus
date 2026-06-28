@@ -1,0 +1,30 @@
+# Production overlay:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Differences from the dev base:
+# - No source bind-mounts (run the baked image, not /workspace).
+# - Only the frontend is published; api/redis/postgres are internal.
+# - restart: unless-stopped for resilience.
+
+services:
+  app:
+    profiles: ["donotstart"]   # dev-only; excluded from prod runs
+
+  api:
+    volumes: []                # use the image, not the bind mount
+    restart: unless-stopped
+    ports: []                  # reached only via nginx
+
+  ingest:
+    volumes: []
+    restart: "no"
+
+  frontend:
+    restart: unless-stopped
+    ports:
+      - "80:80"
+
+  redis:
+    restart: unless-stopped
+
+  postgres:
+    restart: unless-stopped

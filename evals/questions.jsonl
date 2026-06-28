@@ -1,0 +1,17 @@
+{"id": "snapshot_msft_change", "question": "What is Microsoft doing today?", "expected_tool": "get_stock_snapshot", "truth": {"fn": "get_stock_snapshot", "args": {"ticker": "MSFT"}, "field": "change_pct", "unit": "fraction_pct"}, "tolerance": 0.005}
+{"id": "perf_nvda_1y", "question": "How has Nvidia performed over the past year?", "expected_tool": "get_price_performance", "truth": {"fn": "get_price_performance", "args": {"ticker": "NVDA", "period": "1y"}, "field": "total_return", "unit": "fraction_pct"}, "tolerance": 0.05}
+{"id": "perf_aapl_6mo", "question": "How has Apple done over the last 6 months?", "expected_tool": "get_price_performance", "truth": {"fn": "get_price_performance", "args": {"ticker": "AAPL", "period": "6mo"}, "field": "total_return", "unit": "fraction_pct"}, "tolerance": 0.05}
+{"id": "tech_aapl_sma200", "question": "Is Apple trading above its 200-day average?", "expected_tool": "get_technical_indicators", "truth": {"fn": "get_technical_indicators", "args": {"ticker": "AAPL"}, "field": "sma_200", "unit": "raw"}, "tolerance": 3.0}
+{"id": "risk_tsla_beta", "question": "Is Tesla a risky stock?", "expected_tool": "explain_stock_risk", "truth": {"fn": "explain_stock_risk", "args": {"ticker": "TSLA"}, "field": "beta", "unit": "raw"}, "tolerance": 0.3}
+{"id": "compare_aapl_msft", "question": "Compare Apple and Microsoft for me.", "expected_tool": "compare_stocks", "truth": null, "tolerance": null}
+{"id": "move_aapl_6mo", "question": "Why did Apple move over the last 6 months?", "expected_tool": "explain_price_move", "truth": {"fn": "explain_price_move", "args": {"ticker": "AAPL", "period": "6mo"}, "field": "move_frac", "unit": "fraction_pct"}, "tolerance": 0.05}
+{"id": "knowledge_sma_concept", "question": "What is a 200-day moving average?", "expected_tool": "search_knowledge", "truth": null, "tolerance": null}
+{"id": "knowledge_pe_concept", "question": "What is a P/E ratio?", "expected_tool": "search_knowledge", "truth": null, "tolerance": null}
+{"id": "knowledge_watch_concept", "question": "Explain what I should watch out for as a beginner investor.", "expected_tool": "search_knowledge", "truth": null, "tolerance": null}
+{"id": "filing_risks_aapl", "question": "What are the risk factors in Apple's 10-K filing?", "expected_tool": "get_filing_risks", "truth": null, "tolerance": null}
+{"id": "dividend_aapl", "question": "What is Apple's dividend yield?", "expected_tool": "get_dividend_info", "truth": null, "tolerance": null}
+{"id": "market_overview_today", "question": "How is the market doing today?", "expected_tool": "get_market_overview", "truth": null, "tolerance": null}
+{"id": "portfolio_overview", "question": "Give me an overview of my portfolio", "expected_tool": "get_portfolio_overview", "truth": null, "tolerance": null}
+{"id": "portfolio_risk_vol", "question": "How risky is my portfolio?", "expected_tool": "get_portfolio_risk_report", "truth": {"fn": "get_portfolio_risk_report", "args": {}, "field": "volatility", "unit": "fraction_pct"}, "tolerance": 0.05}
+{"id": "portfolio_scenario_covid", "question": "How would my portfolio handle a COVID-style crash?", "expected_tool": "run_portfolio_scenario", "truth": null, "tolerance": null}
+{"id": "portfolio_briefing", "question": "Give me my portfolio briefing for today", "expected_tool": "get_portfolio_briefing", "truth": null, "tolerance": null}

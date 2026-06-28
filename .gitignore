@@ -1,0 +1,64 @@
+# ── Secrets ──────────────────────────────────────────────────────────────────
+.env
+*.pem
+*.key
+CLAUDE.md
+
+# ── Python ───────────────────────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+node_modules/
+
+# ── Data & cache (generated; not source) ─────────────────────────────────────
+data/cache/
+data/*.db
+data/*.db-shm
+data/*.db-wal
+*.parquet
+
+# ── Chroma vector store ───────────────────────────────────────────────────────
+data/chroma/
+chroma/
+
+# ── Smoke-test screenshots (generated artifacts) ──────────────────────────────
+frontend/smoke-shots/
+
+# ── OS & editor ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+
+
+# ── Deploy swap files ─────────────────────────────────────────────────────────
+docker-compose.dev.yml
+
+# ── Claude Code (keep CLAUDE.md; ignore the session scratchpad) ───────────────
+.claude/
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

@@ -1,0 +1,21 @@
+# Keep the build context small.
+.venv/
+venv/
+.git/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+data/cache/
+data/chroma/
+data/*.db
+data/*.db-wal
+data/*.db-shm
+frontend/node_modules/
+frontend/dist/
+frontend/smoke-shots/
+.env
+.idea/
+.vscode/
