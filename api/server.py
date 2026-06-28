@@ -190,7 +190,7 @@ UNIVERSE: dict[str, str] = {
     "KHC": "Kraft Heinz", "GIS": "General Mills", "HSY": "Hershey", "STZ": "Constellation Brands",
     "MO": "Altria", "PM": "Philip Morris", "KDP": "Keurig Dr Pepper", "KR": "Kroger",
     "DG": "Dollar General", "DLTR": "Dollar Tree", "ROST": "Ross Stores", "TJX": "TJX",
-    "YUM": "Yum! Brands", "EL": "Estée Lauder",
+    "YUM": "Yum! Brands", "WEN": "Wendy's", "EL": "Estée Lauder",
     # More industrials / materials
     "UNP": "Union Pacific", "CSX": "CSX", "NSC": "Norfolk Southern", "FDX": "FedEx",
     "EMR": "Emerson", "ETN": "Eaton", "ITW": "Illinois Tool Works", "GD": "General Dynamics",

@@ -8,9 +8,110 @@
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23120f08'/%3E%3Cpath d='M6 22 12 14 17 18 26 7' stroke='%23ffae0a' stroke-width='3' fill='none'/%3E%3C/svg%3E"
     />
     <title>Plutus</title>
+    <style>
+      /* Boot skeleton — inline so it paints instantly on refresh, before the JS
+         and CSS bundles load. React replaces #root's contents on mount. Colors
+         mirror the terminal theme (warm-black bg, muted bars). */
+      html,
+      body {
+        margin: 0;
+        background: #120f08;
+      }
+      #boot {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+      }
+      #boot .row {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        padding: 0 12px;
+        border-bottom: 1px solid #2a2720;
+      }
+      #boot .tape {
+        height: 32px;
+        overflow: hidden;
+      }
+      #boot .head {
+        height: 48px;
+        gap: 12px;
+      }
+      #boot .body {
+        flex: 1;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      #boot .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      #boot .status {
+        height: 24px;
+        border-top: 1px solid #2a2720;
+        border-bottom: none;
+      }
+      .sk {
+        background: #2a2720;
+        border-radius: 4px;
+        flex: none;
+        animation: skpulse 1.4s ease-in-out infinite;
+      }
+      @keyframes skpulse {
+        0%,
+        100% {
+          opacity: 0.4;
+        }
+        50% {
+          opacity: 0.85;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot" aria-hidden="true">
+        <div class="row tape">
+          <span class="sk" style="height:12px;width:96px"></span>
+          <span class="sk" style="height:12px;width:96px"></span>
+          <span class="sk" style="height:12px;width:96px"></span>
+          <span class="sk" style="height:12px;width:96px"></span>
+          <span class="sk" style="height:12px;width:96px"></span>
+          <span class="sk" style="height:12px;width:96px"></span>
+          <span class="sk" style="height:12px;width:96px"></span>
+          <span class="sk" style="height:12px;width:96px"></span>
+        </div>
+        <div class="row head">
+          <span class="sk" style="height:20px;width:112px"></span>
+          <span class="sk" style="height:20px;width:64px;margin-left:16px"></span>
+          <span class="sk" style="height:20px;width:64px"></span>
+          <span class="sk" style="height:20px;width:64px"></span>
+          <span class="sk" style="height:24px;width:24px;border-radius:50%;margin-left:auto"></span>
+          <span class="sk" style="height:24px;width:24px;border-radius:50%"></span>
+        </div>
+        <div class="body">
+          <div style="display:flex;gap:12px">
+            <span class="sk" style="height:32px;width:176px"></span>
+            <span class="sk" style="height:32px;width:96px"></span>
+          </div>
+          <span class="sk" style="height:320px;width:100%"></span>
+          <div class="cards">
+            <span class="sk" style="height:128px"></span>
+            <span class="sk" style="height:128px"></span>
+            <span class="sk" style="height:128px"></span>
+          </div>
+        </div>
+        <div class="row status">
+          <span class="sk" style="height:10px;width:80px"></span>
+          <span class="sk" style="height:10px;width:64px"></span>
+          <span class="sk" style="height:10px;width:112px;margin-left:auto"></span>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
