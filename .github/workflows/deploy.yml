@@ -77,7 +77,6 @@ jobs:
           eb setenv \
             ANTHROPIC_API_KEY="$ANTHROPIC_KEY" \
             POSTGRES_PASSWORD="$POSTGRES_PASS" \
-            --no-confirm
 
       - name: Deploy to EB environment
         run: |

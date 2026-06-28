@@ -16,7 +16,7 @@ services:
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
       HF_HOME: /opt/hf-cache
       REDIS_URL: "redis://redis:6379/0"
-      DATABASE_URL: "${DATABASE_URL:-postgresql+psycopg://stock:${POSTGRES_PASSWORD:-stock}@postgres:5432/stock}"
+      DATABASE_URL: "${DATABASE_URL:-postgresql+psycopg://stock:${POSTGRES_PASSWORD}@postgres:5432/stock}"
       RAG_BACKEND: "${RAG_BACKEND:-pgvector}"
       ALERT_POLL_SEC: "${ALERT_POLL_SEC:-20}"
       RUN_ALERTS_LOOP: "1"
