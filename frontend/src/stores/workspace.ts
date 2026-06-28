@@ -10,7 +10,7 @@ export const VIEW_LABEL: Record<View, string> = {
   paper: "PAPER TRADE",
   scenario: "SCENARIO LAB",
   alerts: "ALERTS",
-  ask: "ASK AI",
+  ask: "PLUTUS AI",
 };
 
 interface WorkspaceState {
