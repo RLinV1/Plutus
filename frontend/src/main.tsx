@@ -16,21 +16,23 @@ const queryClient = new QueryClient({
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
 
-// Load clerk-js from the public CDN instead of the custom Frontend API domain
-// (clerk.plutustrading.tech). The custom domain serves the static bundle without
-// CORS headers and is flagged by ad/privacy blockers (ERR_BLOCKED_BY_CLIENT);
-// jsDelivr returns proper CORS and is allowlisted by blockers. Auth API calls
-// still go to the domain encoded in the publishable key. Override with
-// VITE_CLERK_JS_URL if needed. Keep the @6 major in sync with the pk_live key.
+// The PRODUCTION Clerk instance uses a custom Frontend API domain
+// (clerk.plutustrading.tech) that serves Clerk's static script bundles WITHOUT
+// CORS headers, so the browser refuses them (failed_to_load_clerk_js). Work
+// around it by loading the two bundles (clerk-js + @clerk/ui) from jsDelivr,
+// which returns proper CORS — but ONLY for the prod (pk_live) key. The dev
+// (pk_test) key uses *.clerk.accounts.dev, which serves the scripts correctly,
+// so it must be left on Clerk's default (undefined => Clerk picks the URL).
+// Note: jsDelivr does NOT resolve the @1 range tag for @clerk/ui, so the UI
+// bundle is pinned to an exact version (current `latest`). Bump it when Clerk
+// upgrades, or override via VITE_CLERK_JS_URL / VITE_CLERK_UI_URL.
+const isProdKey = !!PUBLISHABLE_KEY?.startsWith("pk_live_");
 const CLERK_JS_URL =
   (import.meta.env.VITE_CLERK_JS_URL as string | undefined) ||
-  "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6/dist/clerk.browser.js";
-
-// Clerk also hot-loads a second bundle (@clerk/ui) for its UI components; it
-// hits the same broken custom domain, so override it to the CDN too.
+  (isProdKey ? "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6/dist/clerk.browser.js" : undefined);
 const CLERK_UI_URL =
   (import.meta.env.VITE_CLERK_UI_URL as string | undefined) ||
-  "https://cdn.jsdelivr.net/npm/@clerk/ui@1/dist/ui.browser.js";
+  (isProdKey ? "https://cdn.jsdelivr.net/npm/@clerk/ui@1.23.0/dist/ui.browser.js" : undefined);
 
 const clerkAppearance = {
   variables: {
