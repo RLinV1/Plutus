@@ -43,7 +43,7 @@ def _fill_price(ticker: str) -> float:
 
 
 def account_state() -> dict:
-    from . import analytics, store
+    from . import analytics
 
     start = config.paper_start_cash()
     pv = analytics.position_values(PAPER_PORTFOLIO)

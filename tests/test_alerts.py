@@ -96,7 +96,7 @@ def test_hit_payload_shape():
 def test_full_cycle_persists_and_cools_down(portfolio_db):
     # A held position + a rule that must fire against mock prices (always > $1).
     store.add_transaction("default", "AAPL", "BUY", 5, 100.0, trade_date="2021-02-01")
-    rule = store.add_alert_rule("AAPL", "price_above", 1.0)
+    store.add_alert_rule("AAPL", "price_above", 1.0)
 
     out = alerts.run_alert_cycle(NOW)
     assert "AAPL" in out["quotes"]

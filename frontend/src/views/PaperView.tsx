@@ -73,7 +73,7 @@ export default function PaperView() {
         <Big label="TOTAL VALUE" value={fmtUSD(acct?.total_value)} />
         <Big
           label={`RETURN (FROM ${fmtUSD(acct?.start_cash, 0)})`}
-          value={acct ? `${acct.return_pct >= 0 ? "+" : ""}${acct.return_pct.toFixed(2)}%` : "—"}
+          value={acct?.return_pct != null ? `${acct.return_pct >= 0 ? "+" : ""}${acct.return_pct.toFixed(2)}%` : "—"}
           tone={acct ? (acct.return_pct >= 0 ? "up" : "down") : undefined}
         />
       </div>

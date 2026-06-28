@@ -217,7 +217,6 @@ def generate_company_info(ticker: str) -> dict:
         )
     market_cap = 5e9 + (h % 2950) * 1e9        # ~$5B .. ~$3T, deterministic
     pe_ratio = round(8.0 + (h >> 24) % 40, 1)  # 8.0 .. 47.x
-    beta = _profile(t)[2]
     return {
         "ticker": t,
         "name": name,

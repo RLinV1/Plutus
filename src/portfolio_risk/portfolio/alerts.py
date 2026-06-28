@@ -20,8 +20,6 @@ import logging
 import sys
 from datetime import datetime, timedelta
 
-from .. import config
-
 log = logging.getLogger("portfolio_risk.portfolio.alerts")
 if not log.handlers:  # stderr only — tools.py imports this package
     _h = logging.StreamHandler(stream=sys.stderr)
@@ -213,7 +211,7 @@ def run_alert_cycle(now: datetime | None = None) -> dict:
     persist notifications, stamp cooldowns. Returns what the caller should
     broadcast: {"quotes": {...}, "notifications": [...]}.
     """
-    from . import analytics, store
+    from . import store
 
     now = now or datetime.now()
     rules = store.list_alert_rules(enabled_only=True)
