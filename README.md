@@ -5,7 +5,7 @@ Protocol (MCP)**. Ask about a stock in plain English and get real data plus
 plain-language explanations. It combines the three skills that matter most for
 modern AI engineering into one project:
 
-1. **RAG** â€” retrieval over plain-English company profiles, "what to watch out
+1. **RAG** retrieval over plain-English company profiles, "what to watch out
    for" notes, and investing-basics explainers.
 2. **Autonomous agent** â€” a Claude agent that calls the MCP server's tools to
    answer natural-language questions and cite sources.
