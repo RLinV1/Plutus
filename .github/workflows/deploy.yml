@@ -47,10 +47,7 @@ jobs:
         run: |
           eb init "${{ vars.EB_APP_NAME }}" \
             --region "${{ env.AWS_REGION }}" \
-            --platform "Docker" \
-            --profile default
-        env:
-          AWS_EB_INTERACTIVE: "false"
+            --platform "Docker"
 
       - name: Fetch secrets and push to EB
         run: |
