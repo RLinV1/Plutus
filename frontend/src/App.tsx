@@ -16,7 +16,6 @@ import type { ChatMsg } from "./views/AskView";
 import { cn } from "@/lib/utils";
 import { authHeaders, setTokenGetter } from "./api";
 import { SignIn, UserButton, useAuth } from "@clerk/react";
-import { Turnstile } from "@marsidev/react-turnstile";
 
 const ResearchView = lazy(() => import("./views/ResearchView"));
 const MarketView = lazy(() => import("./views/MarketView"));
@@ -35,16 +34,11 @@ function ClerkTokenSync() {
   return null;
 }
 
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
-
 function ClerkGate({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth();
-  const [verified, setVerified] = useState(false);
 
   if (!isLoaded) return null;
   if (!isSignedIn) {
-    const turnstileRequired = !!TURNSTILE_SITE_KEY;
-    const canProceed = !turnstileRequired || verified;
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background py-8 overflow-y-auto">
         <div className="text-center">
@@ -55,14 +49,7 @@ function ClerkGate({ children }: { children: React.ReactNode }) {
             AI stock research &amp; portfolio workbench
           </div>
         </div>
-        {turnstileRequired && !verified && (
-          <Turnstile
-            siteKey={TURNSTILE_SITE_KEY!}
-            onSuccess={() => setVerified(true)}
-            options={{ theme: "dark" }}
-          />
-        )}
-        {canProceed && <SignIn />}
+        <SignIn />
         <div className="font-mono text-[0.6rem] text-muted-foreground opacity-60">
           General information only — not personalized investment advice.
         </div>
