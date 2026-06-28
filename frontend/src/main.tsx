@@ -16,6 +16,16 @@ const queryClient = new QueryClient({
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
 
+// Load clerk-js from the public CDN instead of the custom Frontend API domain
+// (clerk.plutustrading.tech). The custom domain serves the static bundle without
+// CORS headers and is flagged by ad/privacy blockers (ERR_BLOCKED_BY_CLIENT);
+// jsDelivr returns proper CORS and is allowlisted by blockers. Auth API calls
+// still go to the domain encoded in the publishable key. Override with
+// VITE_CLERK_JS_URL if needed. Keep the @6 major in sync with the pk_live key.
+const CLERK_JS_URL =
+  (import.meta.env.VITE_CLERK_JS_URL as string | undefined) ||
+  "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6/dist/clerk.browser.js";
+
 const clerkAppearance = {
   variables: {
     colorBackground: "#131109",
@@ -86,7 +96,7 @@ async function mount() {
     const { ClerkProvider } = await import("@clerk/react");
     ReactDOM.createRoot(root).render(
       <React.StrictMode>
-        <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/" afterSignInUrl="/" afterSignUpUrl="/" appearance={clerkAppearance}>
+        <ClerkProvider publishableKey={PUBLISHABLE_KEY} clerkJSUrl={CLERK_JS_URL} afterSignOutUrl="/" afterSignInUrl="/" afterSignUpUrl="/" appearance={clerkAppearance}>
           <QueryClientProvider client={queryClient}>
             <App clerkEnabled />
           </QueryClientProvider>
