@@ -20,6 +20,7 @@ services:
       RAG_BACKEND: "${RAG_BACKEND:-pgvector}"
       ALERT_POLL_SEC: "${ALERT_POLL_SEC:-20}"
       RUN_ALERTS_LOOP: "1"
+      CLERK_JWKS_URL: "${CLERK_JWKS_URL:-}"
     command: uvicorn api.server:app --host 0.0.0.0 --port 8000
     volumes:
       - hf-cache:/opt/hf-cache
@@ -38,6 +39,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        VITE_CLERK_PUBLISHABLE_KEY: "${VITE_CLERK_PUBLISHABLE_KEY:-}"
     ports:
       - "80:80"
     depends_on:

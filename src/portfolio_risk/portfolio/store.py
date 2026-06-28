@@ -213,6 +213,7 @@ def add_alert_rule(
     threshold: float,
     portfolio: str | None = None,
     cooldown_minutes: int = 240,
+    user_id: str | None = None,
 ) -> dict:
     rule_type = (rule_type or "").strip().lower()
     if rule_type not in RULE_TYPES:
@@ -221,9 +222,11 @@ def add_alert_rule(
     if not tk:
         raise ValueError("ticker is required")
     pf_id = get_or_create_portfolio(portfolio)["id"] if portfolio else None
+    uid = user_id if user_id and user_id != "anonymous" else None
     with session() as s:
         row = AlertRuleModel(
             portfolio_id=pf_id,
+            clerk_user_id=uid,
             ticker=tk,
             rule_type=rule_type,
             threshold=float(threshold),
@@ -234,11 +237,13 @@ def add_alert_rule(
         return _rule_dict(row)
 
 
-def list_alert_rules(enabled_only: bool = False) -> list[dict]:
+def list_alert_rules(enabled_only: bool = False, user_id: str | None = None) -> list[dict]:
     with session() as s:
         q = select(AlertRuleModel).order_by(AlertRuleModel.id)
         if enabled_only:
             q = q.where(AlertRuleModel.enabled.is_(True))
+        if user_id and user_id != "anonymous":
+            q = q.where(AlertRuleModel.clerk_user_id == user_id)
         return [_rule_dict(r) for r in s.scalars(q).all()]
 
 
@@ -288,11 +293,14 @@ def add_notification(
     rule_id: int | None = None,
     portfolio_id: int | None = None,
     payload: dict | None = None,
+    user_id: str | None = None,
 ) -> dict:
+    uid = user_id if user_id and user_id != "anonymous" else None
     with session() as s:
         row = NotificationModel(
             rule_id=rule_id,
             portfolio_id=portfolio_id,
+            clerk_user_id=uid,
             ticker=(ticker or "").upper(),
             kind=kind,
             title=title[:255],
@@ -304,7 +312,9 @@ def add_notification(
         return _notif_dict(row)
 
 
-def list_notifications(unread_only: bool = False, limit: int = 50) -> list[dict]:
+def list_notifications(
+    unread_only: bool = False, limit: int = 50, user_id: str | None = None
+) -> list[dict]:
     with session() as s:
         q = (
             select(NotificationModel)
@@ -313,15 +323,19 @@ def list_notifications(unread_only: bool = False, limit: int = 50) -> list[dict]
         )
         if unread_only:
             q = q.where(NotificationModel.read.is_(False))
+        if user_id and user_id != "anonymous":
+            q = q.where(NotificationModel.clerk_user_id == user_id)
         return [_notif_dict(n) for n in s.scalars(q).all()]
 
 
-def mark_notifications_read(ids: list[int] | None = None) -> int:
+def mark_notifications_read(ids: list[int] | None = None, user_id: str | None = None) -> int:
     """Mark the given notifications read (or ALL unread when ids is None)."""
     with session() as s:
         q = select(NotificationModel).where(NotificationModel.read.is_(False))
         if ids:
             q = q.where(NotificationModel.id.in_([int(i) for i in ids]))
+        if user_id and user_id != "anonymous":
+            q = q.where(NotificationModel.clerk_user_id == user_id)
         rows = s.scalars(q).all()
         for r in rows:
             r.read = True

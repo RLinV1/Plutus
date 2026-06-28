@@ -14,6 +14,8 @@ import { useStream } from "./stores/streamStore";
 import { VIEWS, VIEW_LABEL, useWorkspace, type View } from "./stores/workspace";
 import type { ChatMsg } from "./views/AskView";
 import { cn } from "@/lib/utils";
+import { authHeaders, setTokenGetter } from "./api";
+import { SignIn, UserButton, useAuth } from "@clerk/react";
 
 const ResearchView = lazy(() => import("./views/ResearchView"));
 const MarketView = lazy(() => import("./views/MarketView"));
@@ -23,7 +25,42 @@ const ScenarioView = lazy(() => import("./views/ScenarioView"));
 const AlertsView = lazy(() => import("./views/AlertsView"));
 const AskView = lazy(() => import("./views/AskView"));
 
-export default function App() {
+// Only rendered when inside ClerkProvider (guaranteed when clerkEnabled=true)
+function ClerkTokenSync() {
+  const { getToken } = useAuth();
+  useEffect(() => {
+    setTokenGetter(() => getToken());
+  }, [getToken]);
+  return null;
+}
+
+function ClerkGate({ children }: { children: React.ReactNode }) {
+  const { isSignedIn, isLoaded } = useAuth();
+  if (!isLoaded) return null;
+  if (!isSignedIn) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background py-8 overflow-y-auto">
+        <div className="text-center">
+          <div className="font-mono text-3xl font-bold tracking-tight text-primary mb-1">
+            ▌PLUTUS
+          </div>
+          <div className="font-mono text-xs text-muted-foreground">
+            AI stock research &amp; portfolio workbench
+          </div>
+        </div>
+        <SignIn />
+        <div className="font-mono text-[0.6rem] text-muted-foreground opacity-60">
+          General information only — not personalized investment advice.
+        </div>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
+// ---------------------------------------------------------------------------
+
+export default function App({ clerkEnabled }: { clerkEnabled: boolean }) {
   const view = useWorkspace((s) => s.view);
   const ticker = useWorkspace((s) => s.ticker);
   const setView = useWorkspace((s) => s.setView);
@@ -32,8 +69,6 @@ export default function App() {
   const unseen = useStream((s) => s.unseen);
   const clearUnseen = useStream((s) => s.clearUnseen);
 
-  // Chat lives at the shell level so history survives view switches and the
-  // palette can hand questions to it from anywhere.
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [chatBusy, setChatBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -43,8 +78,6 @@ export default function App() {
     applyScale(useSettings.getState().scale);
   }, []);
 
-  // Single-key shortcuts when no input is focused: 1-5 switch views, / opens
-  // the universal search (the command palette).
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
@@ -95,7 +128,7 @@ export default function App() {
     try {
       const res = await fetch("/api/ask_stream", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify({ question }),
         signal: controller.signal,
       });
@@ -141,9 +174,8 @@ export default function App() {
     ask(q);
   };
 
-  return (
+  const shell = (
     <div className="flex h-full flex-col">
-      {/* Top chrome */}
       <header className="flex h-14 items-center gap-5 border-b border-border bg-card px-4">
         <span className="font-mono text-lg font-bold tracking-tight text-primary">
           ▌PLUTUS
@@ -170,7 +202,6 @@ export default function App() {
             </button>
           ))}
         </nav>
-        {/* The ONE search: tickers, views, commands, ask-AI — all via ⌘K. */}
         <button
           data-tour="search"
           onClick={() => setPaletteOpen(true)}
@@ -193,6 +224,7 @@ export default function App() {
           </span>
         </button>
         <SettingsMenu />
+        {clerkEnabled && <UserButton />}
       </header>
 
       <TickerTape />
@@ -227,7 +259,6 @@ export default function App() {
       <HelpOverlay />
       <Tour />
       <Toasts />
-      {/* Floating advisor bubble everywhere except the full ASK AI view. */}
       {view !== "ask" && (
         <ChatWidget
           ticker={ticker}
@@ -239,5 +270,14 @@ export default function App() {
         />
       )}
     </div>
+  );
+
+  if (!clerkEnabled) return shell;
+
+  return (
+    <>
+      <ClerkTokenSync />
+      <ClerkGate>{shell}</ClerkGate>
+    </>
   );
 }

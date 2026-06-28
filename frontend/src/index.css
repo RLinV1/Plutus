@@ -136,6 +136,82 @@ body {
   background-color: hsl(var(--muted-foreground) / 0.6);
 }
 
+/* Clerk: backgrounds for every surface. */
+.cl-rootBox,
+.cl-card,
+.cl-popoverBox,
+.cl-userButtonPopoverCard,
+.cl-profilePage,
+.cl-userProfile-root,
+.cl-navbar,
+.cl-scrollBox,
+.cl-pageScrollBox,
+.cl-profileSection,
+.cl-profileSectionContent {
+  background: #131109 !important;
+  border-color: #2a2720 !important;
+  box-shadow: none !important;
+}
+
+/* Clerk: white for text-only elements (headings, labels, body copy, identifiers). */
+.cl-headerTitle,
+.cl-headerSubtitle,
+.cl-profileSectionTitleText,
+.cl-formFieldLabel,
+.cl-formFieldHintText,
+.cl-identityPreviewText,
+.cl-userPreviewMainIdentifier,
+.cl-userPreviewSecondaryIdentifier,
+.cl-navbarButtonText,
+.cl-menuItemText,
+.cl-userButtonPopoverActionButtonText,
+.cl-badge,
+.cl-socialButtonsBlockButtonText,
+.cl-dividerText,
+.cl-footerActionText,
+.cl-alertText,
+.cl-otpCodeFieldInput,
+[class*="cl-"] p,
+[class*="cl-"] span:not([class*="Button"]):not([class*="button"]) {
+  color: #ffffff !important;
+}
+
+/* Clerk: secondary / hint text slightly dimmed. */
+.cl-headerSubtitle,
+.cl-formFieldHintText,
+.cl-footerActionText,
+.cl-dividerText {
+  color: #b0a890 !important;
+}
+
+/* Clerk: inputs. */
+.cl-formFieldInput,
+.cl-otpCodeFieldInput {
+  background: #1e1c16 !important;
+  border-color: #2a2720 !important;
+  color: #ffffff !important;
+}
+
+/* Clerk: nav sidebar. */
+.cl-navbarButton { color: #ffffff !important; }
+.cl-navbarButton:hover,
+.cl-navbarButton[data-active="true"] {
+  background: #1e1c16 !important;
+  color: hsl(39,100%,52%) !important;
+}
+
+/* Clerk: popover hover. */
+.cl-userButtonPopoverActionButton:hover,
+.cl-menuItem:hover {
+  background: #1e1c16 !important;
+}
+
+/* Clerk: amber primary button keeps dark text. */
+.cl-formButtonPrimary { color: #1a1400 !important; }
+
+/* Clerk: dividers. */
+.cl-dividerLine { background: #2a2720 !important; }
+
 /* cmdk palette resets. */
 [cmdk-overlay] {
   position: fixed;

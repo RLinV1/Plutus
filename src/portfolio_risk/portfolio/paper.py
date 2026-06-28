@@ -15,6 +15,11 @@ from .. import config
 PAPER_PORTFOLIO = "paper"
 
 
+def _paper_portfolio(user_id: str = "anonymous") -> str:
+    """Portfolio name scoped to a user. Falls back to the shared 'paper' name."""
+    return PAPER_PORTFOLIO if user_id == "anonymous" else f"paper:{user_id}"
+
+
 def _cash(txns: list[dict], start: float) -> float:
     cash = start
     for t in txns:
@@ -42,16 +47,17 @@ def _fill_price(ticker: str) -> float:
     return float(series.iloc[-1])
 
 
-def account_state() -> dict:
+def account_state(user_id: str = "anonymous") -> dict:
     from . import analytics
 
+    pf = _paper_portfolio(user_id)
     start = config.paper_start_cash()
-    pv = analytics.position_values(PAPER_PORTFOLIO)
+    pv = analytics.position_values(pf)
     cash = _cash(pv["txns"], start)
     equity = pv["total_value"]
     total = cash + equity
     return {
-        "portfolio": PAPER_PORTFOLIO,
+        "portfolio": pf,
         "start_cash": round(start, 2),
         "cash": round(cash, 2),
         "positions_value": round(equity, 2),
@@ -68,10 +74,11 @@ def account_state() -> dict:
     }
 
 
-def execute_trade(side: str, ticker: str, shares: float) -> dict:
+def execute_trade(side: str, ticker: str, shares: float, user_id: str = "anonymous") -> dict:
     """Market order against the live quote. Returns the fill + fresh account."""
     from . import ledger, store
 
+    pf = _paper_portfolio(user_id)
     side = (side or "").strip().upper()
     if side not in ("BUY", "SELL"):
         return {"error": f"side must be BUY or SELL, got {side!r}"}
@@ -90,7 +97,7 @@ def execute_trade(side: str, ticker: str, shares: float) -> dict:
     except Exception as exc:  # noqa: BLE001
         return {"error": f"Couldn't price {tk}: {exc}"}
 
-    txns = store.list_transactions(PAPER_PORTFOLIO)
+    txns = store.list_transactions(pf)
     if side == "BUY":
         cost = shares * price
         cash = _cash(txns, config.paper_start_cash())
@@ -106,17 +113,16 @@ def execute_trade(side: str, ticker: str, shares: float) -> dict:
         if shares > held + 1e-9:
             return {"error": f"You hold {held:g} {tk} on paper; can't sell {shares:g}."}
 
-    fill = store.add_transaction(
-        PAPER_PORTFOLIO, tk, side, shares, price, note="paper market fill"
-    )
-    return {"fill": fill, "account": account_state()}
+    fill = store.add_transaction(pf, tk, side, shares, price, note="paper market fill")
+    return {"fill": fill, "account": account_state(user_id)}
 
 
-def reset_account() -> dict:
+def reset_account(user_id: str = "anonymous") -> dict:
     """Wipe all paper trades and start over from the full cash balance."""
     from . import store
 
-    txns = store.list_transactions(PAPER_PORTFOLIO)
+    pf = _paper_portfolio(user_id)
+    txns = store.list_transactions(pf)
     for t in txns:
         store.delete_transaction(t["id"])
-    return {"reset": True, "deleted": len(txns), "account": account_state()}
+    return {"reset": True, "deleted": len(txns), "account": account_state(user_id)}

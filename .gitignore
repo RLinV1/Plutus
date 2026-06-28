@@ -50,6 +50,7 @@ Thumbs.db
 *.swp
 *.swo
 
+frontend/.env.local
 
 
 # ── Deploy swap files ─────────────────────────────────────────────────────────

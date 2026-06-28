@@ -88,6 +88,7 @@ class AlertRuleModel(PortfolioBase):
     portfolio_id: Mapped[int | None] = mapped_column(
         ForeignKey("portfolios.id"), nullable=True
     )
+    clerk_user_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     ticker: Mapped[str] = mapped_column(String(16), nullable=False)
     # price_above | price_below | pct_move | rsi_above | rsi_below | drawdown | news_volume
     rule_type: Mapped[str] = mapped_column(String(24), nullable=False)
@@ -108,6 +109,7 @@ class NotificationModel(PortfolioBase):
     portfolio_id: Mapped[int | None] = mapped_column(
         ForeignKey("portfolios.id"), nullable=True
     )
+    clerk_user_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     ticker: Mapped[str] = mapped_column(String(16), default="")
     kind: Mapped[str] = mapped_column(String(24), default="alert")
     title: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -176,6 +178,29 @@ def reset_engine() -> None:
 def init_portfolio_db() -> None:
     """Idempotent: ensure the engine exists and the schema is created."""
     get_engine()
+    migrate_schema()
+
+
+def migrate_schema() -> None:
+    """Add new columns to existing tables (idempotent — safe to call on every boot)."""
+    from sqlalchemy import text
+
+    engine = get_engine()
+    cols = [
+        ("alert_rules", "clerk_user_id", "VARCHAR(64)"),
+        ("notifications", "clerk_user_id", "VARCHAR(64)"),
+    ]
+    with engine.begin() as conn:
+        for table, col, typ in cols:
+            if engine.dialect.name == "postgresql":
+                conn.execute(
+                    text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {typ}")
+                )
+            else:  # SQLite
+                try:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {typ}"))
+                except Exception:  # noqa: BLE001
+                    pass  # column already exists
 
 
 @contextmanager

@@ -32,8 +32,20 @@ import type {
   WhatIfResult,
 } from "./types";
 
+// Injected by the React auth layer (ClerkTokenSync in App.tsx) when Clerk is enabled.
+let _getToken: (() => Promise<string | null>) | null = null;
+
+export function setTokenGetter(fn: () => Promise<string | null>) {
+  _getToken = fn;
+}
+
+export async function authHeaders(): Promise<Record<string, string>> {
+  const token = _getToken ? await _getToken() : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function getJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: await authHeaders() });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return (await res.json()) as T;
 }
@@ -41,7 +53,7 @@ async function getJSON<T>(url: string): Promise<T> {
 async function sendJSON<T>(url: string, body: unknown, method = "POST"): Promise<T> {
   const res = await fetch(url, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
