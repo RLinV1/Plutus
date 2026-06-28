@@ -96,7 +96,7 @@ async function mount() {
     const { ClerkProvider } = await import("@clerk/react");
     ReactDOM.createRoot(root).render(
       <React.StrictMode>
-        <ClerkProvider publishableKey={PUBLISHABLE_KEY} clerkJSUrl={CLERK_JS_URL} afterSignOutUrl="/" afterSignInUrl="/" afterSignUpUrl="/" appearance={clerkAppearance}>
+        <ClerkProvider publishableKey={PUBLISHABLE_KEY} __internal_clerkJSUrl={CLERK_JS_URL} afterSignOutUrl="/" afterSignInUrl="/" afterSignUpUrl="/" appearance={clerkAppearance}>
           <QueryClientProvider client={queryClient}>
             <App clerkEnabled />
           </QueryClientProvider>
