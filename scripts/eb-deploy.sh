@@ -42,6 +42,7 @@ PGPASS=$(_parse_secret "$(aws secretsmanager get-secret-value \
 # Clerk secrets (optional — skip if not stored yet)
 CLERK_JWKS=""
 CLERK_PK=""
+TURNSTILE_KEY=""
 if aws secretsmanager describe-secret --secret-id plutus/clerk-jwks-url &>/dev/null; then
   CLERK_JWKS=$(_parse_secret "$(aws secretsmanager get-secret-value \
     --secret-id plutus/clerk-jwks-url \
@@ -52,13 +53,19 @@ if aws secretsmanager describe-secret --secret-id plutus/clerk-publishable-key &
     --secret-id plutus/clerk-publishable-key \
     --query SecretString --output text)")
 fi
+if aws secretsmanager describe-secret --secret-id plutus/turnstile-site-key &>/dev/null; then
+  TURNSTILE_KEY=$(_parse_secret "$(aws secretsmanager get-secret-value \
+    --secret-id plutus/turnstile-site-key \
+    --query SecretString --output text)")
+fi
 
 echo "[eb-deploy] Pushing env vars to EB..."
 eb setenv \
   ANTHROPIC_API_KEY="$ANTHROPIC_KEY" \
   POSTGRES_PASSWORD="$PGPASS" \
   CLERK_JWKS_URL="$CLERK_JWKS" \
-  VITE_CLERK_PUBLISHABLE_KEY="$CLERK_PK"
+  VITE_CLERK_PUBLISHABLE_KEY="$CLERK_PK" \
+  VITE_TURNSTILE_SITE_KEY="$TURNSTILE_KEY"
 
 echo "[eb-deploy] Backing up $ORIG → $BACKUP"
 cp "$ORIG" "$BACKUP"

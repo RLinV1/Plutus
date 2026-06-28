@@ -41,6 +41,7 @@ services:
       dockerfile: Dockerfile.frontend
       args:
         VITE_CLERK_PUBLISHABLE_KEY: "${VITE_CLERK_PUBLISHABLE_KEY:-}"
+        VITE_TURNSTILE_SITE_KEY: "${VITE_TURNSTILE_SITE_KEY:-}"
     ports:
       - "80:80"
     depends_on:

@@ -16,7 +16,7 @@ import json
 from contextlib import asynccontextmanager
 
 import pandas as pd
-from fastapi import FastAPI, WebSocket
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -24,6 +24,7 @@ from portfolio_risk import config, tools
 from portfolio_risk.agent.client import run_agent, stream_agent_events
 from portfolio_risk.data.market_data import get_ohlc, get_prices
 
+from .auth import get_user_id
 from .portfolio_routes import router as portfolio_router
 from .ws import alerts_quotes_loop, hub, stream_endpoint
 
@@ -58,6 +59,43 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Stock Research Assistant API", version="2.0.0", lifespan=lifespan)
 app.include_router(portfolio_router)
+
+# ---------------------------------------------------------------------------
+# Rate limiting — backed by Redis when available, in-process dict otherwise.
+# ---------------------------------------------------------------------------
+_rate_store: dict[str, list[float]] = {}
+
+def _check_rate(key: str, limit: int, window: int) -> None:
+    """Sliding-window rate limiter. Raises 429 if over limit."""
+    import time
+    now = time.time()
+    redis_url = config.redis_url()
+    if redis_url:
+        try:
+            import redis as redis_lib
+            r = redis_lib.from_url(redis_url, decode_responses=True)
+            pipe = r.pipeline()
+            pipe.zadd(key, {str(now): now})
+            pipe.zremrangebyscore(key, 0, now - window)
+            pipe.zcard(key)
+            pipe.expire(key, window)
+            results = pipe.execute()
+            if results[2] > limit:
+                raise HTTPException(status_code=429, detail="Rate limit exceeded. Please slow down.")
+            return
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+    # Fallback: in-process dict
+    times = [t for t in _rate_store.get(key, []) if now - t < window]
+    if len(times) >= limit:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Please slow down.")
+    _rate_store[key] = times + [now]
+
+def _rate_limit(request: Request, limit: int = 60, window: int = 60) -> None:
+    ip = request.client.host if request.client else "unknown"
+    _check_rate(f"rl:{ip}:{request.url.path}", limit, window)
 
 
 @app.websocket("/ws/stream")
@@ -377,7 +415,8 @@ def ohlc(ticker: str, period: str = "1y", interval: str = "1d") -> dict:
 
 
 @app.post("/api/ask")
-def ask(payload: dict) -> dict:
+def ask(payload: dict, request: Request, user_id: str = Depends(get_user_id)) -> dict:
+    _rate_limit(request, limit=20, window=60)
     question = (payload or {}).get("question", "").strip()
     if not question:
         return {"error": "Empty question."}
@@ -386,12 +425,13 @@ def ask(payload: dict) -> dict:
 
 
 @app.post("/api/ask_stream")
-def ask_stream(payload: dict) -> StreamingResponse:
+def ask_stream(payload: dict, request: Request, user_id: str = Depends(get_user_id)) -> StreamingResponse:
     """Stream the agent's progress + answer as Server-Sent Events.
 
     Events: {"type":"tool","name":...} | {"type":"text","text":...} |
             {"type":"done","tools":[...]} | {"type":"error","error":...}
     """
+    _rate_limit(request, limit=20, window=60)
     question = (payload or {}).get("question", "").strip()
 
     def gen():

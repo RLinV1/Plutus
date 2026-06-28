@@ -71,6 +71,7 @@ jobs:
             --query SecretString --output text | _parse)
           CLERK_JWKS=""
           CLERK_PK=""
+          TURNSTILE_KEY=""
           if aws secretsmanager describe-secret --secret-id plutus/clerk-jwks-url 2>/dev/null; then
             CLERK_JWKS=$(aws secretsmanager get-secret-value \
               --secret-id plutus/clerk-jwks-url \
@@ -81,11 +82,17 @@ jobs:
               --secret-id plutus/clerk-publishable-key \
               --query SecretString --output text | _parse)
           fi
+          if aws secretsmanager describe-secret --secret-id plutus/turnstile-site-key 2>/dev/null; then
+            TURNSTILE_KEY=$(aws secretsmanager get-secret-value \
+              --secret-id plutus/turnstile-site-key \
+              --query SecretString --output text | _parse)
+          fi
           eb setenv \
             ANTHROPIC_API_KEY="$ANTHROPIC_KEY" \
             POSTGRES_PASSWORD="$POSTGRES_PASS" \
             CLERK_JWKS_URL="$CLERK_JWKS" \
-            VITE_CLERK_PUBLISHABLE_KEY="$CLERK_PK"
+            VITE_CLERK_PUBLISHABLE_KEY="$CLERK_PK" \
+            VITE_TURNSTILE_SITE_KEY="$TURNSTILE_KEY"
 
       - name: Wait for environment to be ready
         run: |

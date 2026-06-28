@@ -7,6 +7,8 @@ WORKDIR /app
 # Pass Clerk publishable key at build time (baked into the JS bundle by Vite).
 ARG VITE_CLERK_PUBLISHABLE_KEY=""
 ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+ARG VITE_TURNSTILE_SITE_KEY=""
+ENV VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
 COPY frontend/package*.json ./
 RUN npm install
 COPY frontend/ ./
