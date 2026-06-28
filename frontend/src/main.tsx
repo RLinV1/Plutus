@@ -26,6 +26,12 @@ const CLERK_JS_URL =
   (import.meta.env.VITE_CLERK_JS_URL as string | undefined) ||
   "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6/dist/clerk.browser.js";
 
+// Clerk also hot-loads a second bundle (@clerk/ui) for its UI components; it
+// hits the same broken custom domain, so override it to the CDN too.
+const CLERK_UI_URL =
+  (import.meta.env.VITE_CLERK_UI_URL as string | undefined) ||
+  "https://cdn.jsdelivr.net/npm/@clerk/ui@1/dist/ui.browser.js";
+
 const clerkAppearance = {
   variables: {
     colorBackground: "#131109",
@@ -96,7 +102,7 @@ async function mount() {
     const { ClerkProvider } = await import("@clerk/react");
     ReactDOM.createRoot(root).render(
       <React.StrictMode>
-        <ClerkProvider publishableKey={PUBLISHABLE_KEY} __internal_clerkJSUrl={CLERK_JS_URL} afterSignOutUrl="/" afterSignInUrl="/" afterSignUpUrl="/" appearance={clerkAppearance}>
+        <ClerkProvider publishableKey={PUBLISHABLE_KEY} __internal_clerkJSUrl={CLERK_JS_URL} __internal_clerkUIUrl={CLERK_UI_URL} afterSignOutUrl="/" afterSignInUrl="/" afterSignUpUrl="/" appearance={clerkAppearance}>
           <QueryClientProvider client={queryClient}>
             <App clerkEnabled />
           </QueryClientProvider>
