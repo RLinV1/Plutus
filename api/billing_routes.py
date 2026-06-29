@@ -39,6 +39,24 @@ def checkout(payload: dict, user_id: str = Depends(get_user_id)) -> dict:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
+@router.post("/change")
+def change(payload: dict, user_id: str = Depends(get_user_id)) -> dict:
+    """Switch an existing subscription to a different plan (prorated, in place).
+
+    Returns ``{"switched": True, ...}`` on a swap, or ``{"url": ...}`` when the
+    user has no active subscription yet (the client then redirects to Checkout).
+    """
+    plan = (payload or {}).get("plan", "")
+    if plan not in ("free", "pro", "pro_max"):
+        raise HTTPException(status_code=400, detail="Invalid plan.")
+    if user_id == "anonymous":
+        raise HTTPException(status_code=401, detail="Sign in to change plans.")
+    try:
+        return billing.change_plan(user_id, plan)
+    except billing.BillingError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
 @router.post("/portal")
 def portal(user_id: str = Depends(get_user_id)) -> dict:
     """Open the Stripe billing portal to manage/cancel a subscription."""

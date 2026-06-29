@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api";
 import { useWorkspace } from "../../stores/workspace";
 import type { BillingStatus, Plan } from "../../types";
@@ -110,6 +110,16 @@ export function PricingPage() {
     mutationFn: () => api.billingPortal(),
     onSuccess: (r) => r.url && (window.location.href = r.url),
   });
+  const qc = useQueryClient();
+  const change = useMutation({
+    mutationFn: (plan: "free" | "pro" | "pro_max") => api.billingChange(plan),
+    onSuccess: (r) => {
+      // No active sub → server returns a Checkout URL; otherwise it swapped the
+      // plan in place, so just refresh the badge/status.
+      if (r.url) window.location.href = r.url;
+      else qc.invalidateQueries({ queryKey: ["billing"] });
+    },
+  });
 
   if (!open) return null;
 
@@ -118,9 +128,12 @@ export function PricingPage() {
   const billingOn = data?.billing_enabled ?? false;
   const unlimited = data?.unlimited ?? false;
   const reachedLimit = !unlimited && data ? data.remaining <= 0 : false;
-  const busy = checkout.isPending || portal.isPending;
+  const busy = checkout.isPending || portal.isPending || change.isPending;
   const err =
-    (checkout.error as Error)?.message || (portal.error as Error)?.message || null;
+    (checkout.error as Error)?.message ||
+    (portal.error as Error)?.message ||
+    (change.error as Error)?.message ||
+    null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
@@ -256,19 +269,35 @@ export function PricingPage() {
         </div>
       );
     }
+    const onPaid = current !== "free";
     if (plan === "free") {
+      // Paid users can downgrade back to free (cancels the subscription).
+      if (!onPaid) {
+        return (
+          <div className="grid place-items-center border border-border py-2 font-mono text-[0.625rem] text-muted-foreground/60">
+            —
+          </div>
+        );
+      }
       return (
-        <div className="grid place-items-center border border-border py-2 font-mono text-[0.625rem] text-muted-foreground/60">
-          —
-        </div>
+        <button
+          disabled={busy || !billingOn}
+          onClick={() => change.mutate("free")}
+          className="grid w-full place-items-center border border-border py-2 font-mono text-[0.625rem] font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+        >
+          {busy ? "…" : "Downgrade to free"}
+        </button>
       );
     }
     // Paid tier the user isn't on.
-    const onPaid = current !== "free";
     return (
       <button
         disabled={busy || !billingOn}
-        onClick={() => (onPaid ? portal.mutate() : checkout.mutate(plan as "pro" | "pro_max"))}
+        onClick={() =>
+          onPaid
+            ? change.mutate(plan as "pro" | "pro_max")
+            : checkout.mutate(plan as "pro" | "pro_max")
+        }
         className="grid w-full place-items-center bg-primary py-2 font-mono text-[0.625rem] font-bold uppercase tracking-wider text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         {busy ? "…" : onPaid ? "Switch plan" : `Upgrade to ${TIERS.find((x) => x.plan === plan)?.name}`}

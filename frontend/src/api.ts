@@ -158,5 +158,10 @@ export const api = {
   billingStatus: () => getJSON<BillingStatus>("/api/billing/status"),
   billingCheckout: (plan: "pro" | "pro_max") =>
     sendJSON<{ url: string }>("/api/billing/checkout", { plan }),
+  billingChange: (plan: "free" | "pro" | "pro_max") =>
+    sendJSON<{ switched?: boolean; plan?: string; url?: string }>(
+      "/api/billing/change",
+      { plan },
+    ),
   billingPortal: () => sendJSON<{ url: string }>("/api/billing/portal", {}),
 };

@@ -285,6 +285,65 @@ def create_checkout(user_id: str, plan: str) -> str:
     return sess.url
 
 
+def change_plan(user_id: str, plan: str) -> dict:
+    """Switch an existing subscription to a different plan's price (prorated).
+
+    Returns ``{"switched": True, "plan": plan}`` on an in-place swap (or a
+    downgrade to free), or ``{"url": <checkout_url>}`` when the user has no
+    active subscription yet, so the caller redirects them to Checkout.
+    """
+    if plan == "free":
+        return cancel_subscription(user_id)
+
+    price = config.stripe_price_ids().get(plan)
+    if not price:
+        raise BillingError(f"No Stripe price configured for plan '{plan}'.")
+
+    sub_id = None
+    with session() as s:
+        row = s.query(UserPlanModel).filter_by(clerk_user_id=user_id).one_or_none()
+        if row and row.status in _ACTIVE:
+            sub_id = row.stripe_subscription_id
+    if not sub_id:
+        # Nothing to modify — start a fresh Checkout for this plan instead.
+        return {"url": create_checkout(user_id, plan)}
+
+    stripe = _stripe()
+    # Subscript access (not ``.get``) — Stripe objects don't support ``.get``.
+    sub = stripe.Subscription.retrieve(sub_id)
+    item_id = sub["items"]["data"][0]["id"]
+    stripe.Subscription.modify(
+        sub_id,
+        items=[{"id": item_id, "price": price}],
+        proration_behavior="create_prorations",
+        metadata={"clerk_user_id": user_id, "plan": plan},
+    )
+    # Reflect immediately for a snappy UI; the subscription.updated webhook
+    # reconciles it again shortly after.
+    set_plan(user_id, plan, status="active", subscription_id=sub_id)
+    return {"switched": True, "plan": plan}
+
+
+def cancel_subscription(user_id: str) -> dict:
+    """Cancel the user's subscription immediately, dropping them to free.
+
+    Idempotent: returns success if there's nothing to cancel. The
+    ``customer.subscription.deleted`` webhook also reconciles the plan to free.
+    """
+    sub_id = None
+    with session() as s:
+        row = s.query(UserPlanModel).filter_by(clerk_user_id=user_id).one_or_none()
+        sub_id = row.stripe_subscription_id if row else None
+    if sub_id:
+        stripe = _stripe()
+        try:
+            stripe.Subscription.cancel(sub_id)
+        except Exception as exc:  # noqa: BLE001 - e.g. already canceled/deleted
+            log.warning("cancel of %s failed (continuing): %s", sub_id, exc)
+    set_plan(user_id, "free", status="canceled", subscription_id=None)
+    return {"switched": True, "plan": "free"}
+
+
 def create_portal(user_id: str) -> str:
     """Create a Stripe billing-portal session so the user can manage/cancel."""
     stripe = _stripe()
