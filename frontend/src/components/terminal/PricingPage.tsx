@@ -34,7 +34,7 @@ const TIERS: {
   {
     plan: "pro",
     name: "Pro",
-    price: "$9",
+    price: "$10",
     cadence: "/month",
     tagline: "For active research.",
     highlight: true,
@@ -48,7 +48,7 @@ const TIERS: {
   {
     plan: "pro_max",
     name: "Pro Max",
-    price: "$19",
+    price: "$20",
     cadence: "/month",
     tagline: "For power users.",
     features: [
