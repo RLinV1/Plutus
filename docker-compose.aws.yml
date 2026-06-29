@@ -21,6 +21,11 @@ services:
       ALERT_POLL_SEC: "${ALERT_POLL_SEC:-20}"
       RUN_ALERTS_LOOP: "1"
       CLERK_JWKS_URL: "${CLERK_JWKS_URL:-}"
+      STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY:-}"
+      STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET:-}"
+      STRIPE_PRICE_PRO: "${STRIPE_PRICE_PRO:-}"
+      STRIPE_PRICE_PRO_MAX: "${STRIPE_PRICE_PRO_MAX:-}"
+      UNLIMITED_USER_IDS: "${UNLIMITED_USER_IDS:-}"
     command: uvicorn api.server:app --host 0.0.0.0 --port 8000
     volumes:
       - hf-cache:/opt/hf-cache
