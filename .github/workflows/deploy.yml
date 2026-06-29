@@ -66,6 +66,14 @@ jobs:
               --region "${{ env.AWS_REGION }}"
           fi
 
+      - name: Wake environment if paused
+        run: |
+          # If the env was taken offline with scripts/eb-stop.sh (instance
+          # stopped + ASG suspended), bring it back BEFORE setenv/deploy, which
+          # can't reach a stopped instance. Idempotent: no-op if already running.
+          bash scripts/eb-start.sh "${{ vars.EB_ENV_NAME }}" "${{ env.AWS_REGION }}" \
+            || echo "eb-start.sh found nothing to wake (fresh/terminated env) — continuing."
+
       - name: Sync secrets to EB env vars
         run: |
           _parse() {
