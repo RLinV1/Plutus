@@ -95,6 +95,10 @@ const clerkAppearance = {
       color: "#ffffff",
     },
     alertText: { color: "#ffffff" },
+    // Clerk's built-in "Sign up / Sign in" switch links to the hosted Account
+    // Portal (accounts.<domain>), which renders blank for us (no-CORS custom
+    // Frontend API domain). Hide it — ClerkGate provides an in-app toggle.
+    footerAction: { display: "none" },
   },
 };
 

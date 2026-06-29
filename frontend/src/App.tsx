@@ -19,7 +19,7 @@ import { VIEWS, VIEW_LABEL, useWorkspace, type View } from "./stores/workspace";
 import type { ChatMsg } from "./views/AskView";
 import { cn } from "@/lib/utils";
 import { authHeaders, setTokenGetter } from "./api";
-import { SignIn, UserButton, useAuth } from "@clerk/react";
+import { SignIn, SignUp, UserButton, useAuth } from "@clerk/react";
 
 const ResearchView = lazy(() => import("./views/ResearchView"));
 const MarketView = lazy(() => import("./views/MarketView"));
@@ -40,6 +40,7 @@ function ClerkTokenSync() {
 
 function ClerkGate({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth();
+  const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
 
   if (!isLoaded) return <BootSplash />;
   if (!isSignedIn) {
@@ -53,7 +54,21 @@ function ClerkGate({ children }: { children: React.ReactNode }) {
             AI stock research &amp; portfolio workbench
           </div>
         </div>
-        <SignIn />
+        {/* Sign-up stays IN-APP on purpose. The hosted Clerk Account Portal
+            (accounts.<domain>/sign-up) can't use our jsDelivr clerk-js
+            workaround for the no-CORS custom Frontend API domain, so it renders
+            blank — see main.tsx. Virtual routing keeps the whole flow in-memory,
+            correct for this router-less SPA. */}
+        {mode === "sign-up" ? <SignUp routing="virtual" /> : <SignIn routing="virtual" />}
+        <button
+          type="button"
+          onClick={() => setMode((m) => (m === "sign-in" ? "sign-up" : "sign-in"))}
+          className="font-mono text-xs text-primary hover:underline"
+        >
+          {mode === "sign-in"
+            ? "Need an account? Create one →"
+            : "← Already have an account? Sign in"}
+        </button>
         <div className="font-mono text-[0.6rem] text-muted-foreground opacity-60">
           General information only — not personalized investment advice.
         </div>
