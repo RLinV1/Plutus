@@ -8,7 +8,7 @@ import { SettingsMenu } from "./components/terminal/SettingsMenu";
 import { CommandPalette } from "./components/terminal/CommandPalette";
 import { applyScale, useSettings } from "./stores/settings";
 import { StatusBar } from "./components/terminal/StatusBar";
-import { AppSkeleton, ViewSkeleton } from "./components/terminal/AppSkeleton";
+import { BootSplash, ViewSkeleton } from "./components/terminal/AppSkeleton";
 import { PlanBadge } from "./components/terminal/PlanBadge";
 import { PricingPage } from "./components/terminal/PricingPage";
 import { TickerTape } from "./components/terminal/TickerTape";
@@ -41,7 +41,7 @@ function ClerkTokenSync() {
 function ClerkGate({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth();
 
-  if (!isLoaded) return <AppSkeleton />;
+  if (!isLoaded) return <BootSplash />;
   if (!isSignedIn) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background py-8 overflow-y-auto">
@@ -267,7 +267,7 @@ export default function App({ clerkEnabled }: { clerkEnabled: boolean }) {
       <TickerTape />
 
       <main className="chat-scroll flex-1 overflow-y-auto p-3">
-        <Suspense fallback={<ViewSkeleton />}>
+        <Suspense fallback={<ViewSkeleton view={view} />}>
           {view === "research" && <ResearchView />}
           {view === "market" && <MarketView />}
           {view === "portfolio" && <PortfolioView onAsk={askAbout} />}
