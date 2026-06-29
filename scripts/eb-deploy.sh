@@ -59,13 +59,45 @@ if aws secretsmanager describe-secret --secret-id plutus/turnstile-site-key &>/d
     --query SecretString --output text)")
 fi
 
+# Billing / Stripe secrets (optional — daily quota is enforced without them)
+STRIPE_KEY=""
+STRIPE_WH=""
+STRIPE_PRO=""
+STRIPE_PRO_MAX=""
+UNLIMITED_IDS=""
+if aws secretsmanager describe-secret --secret-id plutus/stripe-secret-key &>/dev/null; then
+  STRIPE_KEY=$(_parse_secret "$(aws secretsmanager get-secret-value \
+    --secret-id plutus/stripe-secret-key --query SecretString --output text)")
+fi
+if aws secretsmanager describe-secret --secret-id plutus/stripe-webhook-secret &>/dev/null; then
+  STRIPE_WH=$(_parse_secret "$(aws secretsmanager get-secret-value \
+    --secret-id plutus/stripe-webhook-secret --query SecretString --output text)")
+fi
+if aws secretsmanager describe-secret --secret-id plutus/stripe-price-pro &>/dev/null; then
+  STRIPE_PRO=$(_parse_secret "$(aws secretsmanager get-secret-value \
+    --secret-id plutus/stripe-price-pro --query SecretString --output text)")
+fi
+if aws secretsmanager describe-secret --secret-id plutus/stripe-price-pro-max &>/dev/null; then
+  STRIPE_PRO_MAX=$(_parse_secret "$(aws secretsmanager get-secret-value \
+    --secret-id plutus/stripe-price-pro-max --query SecretString --output text)")
+fi
+if aws secretsmanager describe-secret --secret-id plutus/unlimited-user-ids &>/dev/null; then
+  UNLIMITED_IDS=$(_parse_secret "$(aws secretsmanager get-secret-value \
+    --secret-id plutus/unlimited-user-ids --query SecretString --output text)")
+fi
+
 echo "[eb-deploy] Pushing env vars to EB..."
 eb setenv \
   ANTHROPIC_API_KEY="$ANTHROPIC_KEY" \
   POSTGRES_PASSWORD="$PGPASS" \
   CLERK_JWKS_URL="$CLERK_JWKS" \
   VITE_CLERK_PUBLISHABLE_KEY="$CLERK_PK" \
-  VITE_TURNSTILE_SITE_KEY="$TURNSTILE_KEY"
+  VITE_TURNSTILE_SITE_KEY="$TURNSTILE_KEY" \
+  STRIPE_SECRET_KEY="$STRIPE_KEY" \
+  STRIPE_WEBHOOK_SECRET="$STRIPE_WH" \
+  STRIPE_PRICE_PRO="$STRIPE_PRO" \
+  STRIPE_PRICE_PRO_MAX="$STRIPE_PRO_MAX" \
+  UNLIMITED_USER_IDS="$UNLIMITED_IDS"
 
 echo "[eb-deploy] Backing up $ORIG → $BACKUP"
 cp "$ORIG" "$BACKUP"

@@ -4,6 +4,9 @@
 *.key
 CLAUDE.md
 
+# Private setup notes (billing / Stripe) — keep local, not in the repo
+BILLING_SETUP.md
+
 # ── Python ───────────────────────────────────────────────────────────────────
 .venv/
 venv/

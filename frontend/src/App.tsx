@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ChatWidget } from "./components/terminal/ChatWidget";
 import { HelpOverlay } from "./components/terminal/HelpOverlay";
 import { Tour } from "./components/terminal/Tour";
@@ -8,6 +9,7 @@ import { CommandPalette } from "./components/terminal/CommandPalette";
 import { applyScale, useSettings } from "./stores/settings";
 import { StatusBar } from "./components/terminal/StatusBar";
 import { AppSkeleton, ViewSkeleton } from "./components/terminal/AppSkeleton";
+import { PlanBadge, UpgradeDialog } from "./components/terminal/PlanBadge";
 import { TickerTape } from "./components/terminal/TickerTape";
 import { Kbd } from "./components/terminal/Kbd";
 import { startStream } from "./lib/ws";
@@ -74,6 +76,9 @@ export default function App({ clerkEnabled }: { clerkEnabled: boolean }) {
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [chatBusy, setChatBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const queryClient = useQueryClient();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [hitLimit, setHitLimit] = useState(false);
 
   useEffect(() => {
     startStream();
@@ -134,6 +139,25 @@ export default function App({ clerkEnabled }: { clerkEnabled: boolean }) {
         body: JSON.stringify({ question }),
         signal: controller.signal,
       });
+      if (!res.ok) {
+        // Out of daily quota (429 with a structured detail) → prompt to upgrade.
+        let detail: { code?: string; message?: string } | null = null;
+        try {
+          detail = (await res.json()).detail;
+        } catch {
+          /* non-JSON error body */
+        }
+        if (res.status === 429 && detail?.code === "daily_limit") {
+          answer = detail.message ?? "You've hit today's prompt limit.";
+          setHitLimit(true);
+          setUpgradeOpen(true);
+        } else {
+          answer = "Sorry, something went wrong.";
+        }
+        update();
+        queryClient.invalidateQueries({ queryKey: ["billing"] });
+        return;
+      }
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -157,6 +181,8 @@ export default function App({ clerkEnabled }: { clerkEnabled: boolean }) {
         answer = "(no answer)";
         update();
       }
+      // Refresh the usage badge — one prompt was just consumed.
+      queryClient.invalidateQueries({ queryKey: ["billing"] });
     } catch (e: unknown) {
       answer =
         (e as Error)?.name === "AbortError"
@@ -225,6 +251,14 @@ export default function App({ clerkEnabled }: { clerkEnabled: boolean }) {
             <Kbd>⌘K</Kbd>
           </span>
         </button>
+        {clerkEnabled && (
+          <PlanBadge
+            onClick={() => {
+              setHitLimit(false);
+              setUpgradeOpen(true);
+            }}
+          />
+        )}
         <SettingsMenu />
         {clerkEnabled && <UserButton />}
       </header>
@@ -255,6 +289,11 @@ export default function App({ clerkEnabled }: { clerkEnabled: boolean }) {
       <HelpOverlay />
       <Tour />
       <Toasts />
+      <UpgradeDialog
+        open={upgradeOpen}
+        reachedLimit={hitLimit}
+        onClose={() => setUpgradeOpen(false)}
+      />
       {view !== "ask" && (
         <ChatWidget
           ticker={ticker}

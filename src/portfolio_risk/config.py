@@ -133,6 +133,69 @@ def rag_rerank() -> bool:
     return _flag("RAG_RERANK", "0") in ("1", "true", "yes")
 
 
+# --- Billing / daily prompt quotas ---
+# Plan tiers and how many AI prompts each allows per UTC day. Overridable via
+# env so the limits can be tuned without a code change.
+def plan_limits() -> dict[str, int]:
+    def _int(name: str, default: str) -> int:
+        try:
+            return max(0, int(os.environ.get(name, default)))
+        except ValueError:
+            return int(default)
+
+    return {
+        "free": _int("LIMIT_FREE_PER_DAY", "5"),
+        "pro": _int("LIMIT_PRO_PER_DAY", "10"),
+        "pro_max": _int("LIMIT_PRO_MAX_PER_DAY", "20"),
+    }
+
+
+def unlimited_user_ids() -> set[str]:
+    """Clerk user IDs granted unlimited prompts (admins / comped accounts).
+
+    Set ``UNLIMITED_USER_IDS`` to a comma-separated list of Clerk user IDs
+    (Clerk Dashboard → Users → copy the ``user_...`` ID). No redeploy of the
+    frontend needed — it's read server-side on every request.
+    """
+    raw = os.environ.get("UNLIMITED_USER_IDS", "")
+    return {x.strip() for x in raw.split(",") if x.strip()}
+
+
+def stripe_secret_key() -> str | None:
+    return os.environ.get("STRIPE_SECRET_KEY", "").strip() or None
+
+
+def stripe_webhook_secret() -> str | None:
+    return os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip() or None
+
+
+def stripe_price_ids() -> dict[str, str]:
+    """Map paid plan -> Stripe Price ID (created in the Stripe dashboard)."""
+    return {
+        "pro": os.environ.get("STRIPE_PRICE_PRO", "").strip(),
+        "pro_max": os.environ.get("STRIPE_PRICE_PRO_MAX", "").strip(),
+    }
+
+
+def billing_enabled() -> bool:
+    """Stripe upgrades are available only when a secret key is configured.
+
+    Daily quotas are ALWAYS enforced (free tier); this flag only governs whether
+    users can purchase an upgrade.
+    """
+    return stripe_secret_key() is not None
+
+
+def billing_success_url() -> str:
+    return os.environ.get(
+        "BILLING_SUCCESS_URL", "https://plutustrading.tech/?upgraded=1"
+    ).strip()
+
+
+def billing_cancel_url() -> str:
+    return os.environ.get("BILLING_CANCEL_URL", "https://plutustrading.tech/").strip()
+
+
 def ensure_dirs() -> None:
     for d in (DATA_DIR, CACHE_DIR, PRICE_CACHE_DIR, CHROMA_DIR):
         d.mkdir(parents=True, exist_ok=True)

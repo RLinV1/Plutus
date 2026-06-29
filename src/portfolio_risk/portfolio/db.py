@@ -119,6 +119,42 @@ class NotificationModel(PortfolioBase):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, index=True)
 
 
+class UserPlanModel(PortfolioBase):
+    """A Clerk user's subscription tier + Stripe linkage. Absence => free plan."""
+
+    __tablename__ = "user_plans"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    clerk_user_id: Mapped[str] = mapped_column(
+        String(64), unique=True, index=True, nullable=False
+    )
+    plan: Mapped[str] = mapped_column(String(16), default="free")  # free | pro | pro_max
+    status: Mapped[str] = mapped_column(String(24), default="active")  # Stripe sub status
+    stripe_customer_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    current_period_end: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=_utcnow, onupdate=_utcnow
+    )
+
+
+class PromptUsageModel(PortfolioBase):
+    """Per-user, per-UTC-day prompt counter for daily rate limiting."""
+
+    __tablename__ = "prompt_usage"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    clerk_user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    day: Mapped[date] = mapped_column(Date, nullable=False)
+    count: Mapped[int] = mapped_column(Integer, default=0)
+
+    __table_args__ = (
+        Index("ix_usage_user_day", "clerk_user_id", "day", unique=True),
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Engine management. Lazy + keyed on the URL so tests can repoint
 # PORTFOLIO_DB_URL at a temp file and transparently get a fresh engine.

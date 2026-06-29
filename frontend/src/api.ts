@@ -1,6 +1,7 @@
 import type {
   AlertRule,
   AskResult,
+  BillingStatus,
   Briefing,
   CompareResult,
   CsvParseResult,
@@ -152,4 +153,10 @@ export const api = {
     sendJSON<{ marked: number }>("/api/notifications/read", ids ? { ids } : {}),
   health: () =>
     getJSON<{ live_data: boolean; ws_clients: number }>("/api/health"),
+
+  /* ---- billing / quota ---- */
+  billingStatus: () => getJSON<BillingStatus>("/api/billing/status"),
+  billingCheckout: (plan: "pro" | "pro_max") =>
+    sendJSON<{ url: string }>("/api/billing/checkout", { plan }),
+  billingPortal: () => sendJSON<{ url: string }>("/api/billing/portal", {}),
 };

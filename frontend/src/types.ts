@@ -3,6 +3,18 @@ export interface UniverseItem {
   name: string;
 }
 
+export type Plan = "free" | "pro" | "pro_max";
+
+export interface BillingStatus {
+  plan: Plan;
+  used: number;
+  limit: number;
+  remaining: number;
+  unlimited: boolean;
+  billing_enabled: boolean;
+  limits: Record<Plan, number>;
+}
+
 export interface Snapshot {
   ticker: string;
   name: string;

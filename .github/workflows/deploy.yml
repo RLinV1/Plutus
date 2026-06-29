@@ -48,7 +48,23 @@ jobs:
           eb init "${{ vars.EB_APP_NAME }}" \
             --region "${{ env.AWS_REGION }}" \
             --platform "Docker"
-          eb use "${{ vars.EB_ENV_NAME }}"
+
+      - name: Ensure environment exists (recreate if terminated)
+        run: |
+          ENV="${{ vars.EB_ENV_NAME }}"
+          if eb status "$ENV" >/dev/null 2>&1; then
+            echo "Environment $ENV exists — will deploy to it."
+            eb use "$ENV"
+          else
+            echo "Environment $ENV not found (terminated?) — creating it."
+            # Single-instance Docker, matching scripts/eb-create.sh. Secrets are
+            # applied by the next step (eb setenv), which triggers an update.
+            eb create "$ENV" \
+              --instance-type t3.medium \
+              --single \
+              --platform "Docker running on 64bit Amazon Linux 2023" \
+              --region "${{ env.AWS_REGION }}"
+          fi
 
       - name: Sync secrets to EB env vars
         run: |
@@ -87,12 +103,43 @@ jobs:
               --secret-id plutus/turnstile-site-key \
               --query SecretString --output text | _parse)
           fi
+          # Billing / Stripe (all optional — quota still enforced without them).
+          STRIPE_KEY=""
+          STRIPE_WH=""
+          STRIPE_PRO=""
+          STRIPE_PRO_MAX=""
+          UNLIMITED_IDS=""
+          if aws secretsmanager describe-secret --secret-id plutus/stripe-secret-key 2>/dev/null; then
+            STRIPE_KEY=$(aws secretsmanager get-secret-value \
+              --secret-id plutus/stripe-secret-key --query SecretString --output text | _parse)
+          fi
+          if aws secretsmanager describe-secret --secret-id plutus/stripe-webhook-secret 2>/dev/null; then
+            STRIPE_WH=$(aws secretsmanager get-secret-value \
+              --secret-id plutus/stripe-webhook-secret --query SecretString --output text | _parse)
+          fi
+          if aws secretsmanager describe-secret --secret-id plutus/stripe-price-pro 2>/dev/null; then
+            STRIPE_PRO=$(aws secretsmanager get-secret-value \
+              --secret-id plutus/stripe-price-pro --query SecretString --output text | _parse)
+          fi
+          if aws secretsmanager describe-secret --secret-id plutus/stripe-price-pro-max 2>/dev/null; then
+            STRIPE_PRO_MAX=$(aws secretsmanager get-secret-value \
+              --secret-id plutus/stripe-price-pro-max --query SecretString --output text | _parse)
+          fi
+          if aws secretsmanager describe-secret --secret-id plutus/unlimited-user-ids 2>/dev/null; then
+            UNLIMITED_IDS=$(aws secretsmanager get-secret-value \
+              --secret-id plutus/unlimited-user-ids --query SecretString --output text | _parse)
+          fi
           eb setenv \
             ANTHROPIC_API_KEY="$ANTHROPIC_KEY" \
             POSTGRES_PASSWORD="$POSTGRES_PASS" \
             CLERK_JWKS_URL="$CLERK_JWKS" \
             VITE_CLERK_PUBLISHABLE_KEY="$CLERK_PK" \
-            VITE_TURNSTILE_SITE_KEY="$TURNSTILE_KEY"
+            VITE_TURNSTILE_SITE_KEY="$TURNSTILE_KEY" \
+            STRIPE_SECRET_KEY="$STRIPE_KEY" \
+            STRIPE_WEBHOOK_SECRET="$STRIPE_WH" \
+            STRIPE_PRICE_PRO="$STRIPE_PRO" \
+            STRIPE_PRICE_PRO_MAX="$STRIPE_PRO_MAX" \
+            UNLIMITED_USER_IDS="$UNLIMITED_IDS"
 
       - name: Wait for environment to be ready
         run: |

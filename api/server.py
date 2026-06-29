@@ -24,7 +24,10 @@ from portfolio_risk import config, tools
 from portfolio_risk.agent.client import run_agent, stream_agent_events
 from portfolio_risk.data.market_data import get_ohlc, get_prices
 
+from portfolio_risk.portfolio import billing
+
 from .auth import get_user_id
+from .billing_routes import router as billing_router
 from .portfolio_routes import router as portfolio_router
 from .ws import alerts_quotes_loop, hub, stream_endpoint
 
@@ -59,6 +62,28 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Stock Research Assistant API", version="2.0.0", lifespan=lifespan)
 app.include_router(portfolio_router)
+app.include_router(billing_router)
+
+
+def _enforce_daily_quota(user_id: str) -> None:
+    """Consume one prompt from the user's daily allowance or raise 429.
+
+    The 429 detail is a structured dict so the frontend can show an upgrade
+    prompt with the exact plan/limit.
+    """
+    quota = billing.consume(user_id)
+    if not quota["allowed"]:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "code": "daily_limit",
+                "message": (
+                    f"You've used all {quota['limit']} prompts for today on the "
+                    f"{quota['plan'].replace('_', ' ')} plan."
+                ),
+                **quota,
+            },
+        )
 
 # ---------------------------------------------------------------------------
 # Rate limiting — backed by Redis when available, in-process dict otherwise.
@@ -420,6 +445,7 @@ def ask(payload: dict, request: Request, user_id: str = Depends(get_user_id)) ->
     question = (payload or {}).get("question", "").strip()
     if not question:
         return {"error": "Empty question."}
+    _enforce_daily_quota(user_id)
     result = run_agent(question)
     return {"answer": result.answer, "tools_used": result.tool_names()}
 
@@ -440,6 +466,11 @@ def ask_stream(payload: dict, request: Request, user_id: str = Depends(get_user_
             return
         for event in stream_agent_events(question):
             yield f"data: {json.dumps(event)}\n\n"
+
+    # Only charge the daily quota for a real (non-empty) question; raises 429
+    # (structured detail) before the stream starts when the user is out of quota.
+    if question:
+        _enforce_daily_quota(user_id)
 
     return StreamingResponse(gen(), media_type="text/event-stream")
 
