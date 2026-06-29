@@ -9,7 +9,8 @@ import { CommandPalette } from "./components/terminal/CommandPalette";
 import { applyScale, useSettings } from "./stores/settings";
 import { StatusBar } from "./components/terminal/StatusBar";
 import { AppSkeleton, ViewSkeleton } from "./components/terminal/AppSkeleton";
-import { PlanBadge, UpgradeDialog } from "./components/terminal/PlanBadge";
+import { PlanBadge } from "./components/terminal/PlanBadge";
+import { PricingPage } from "./components/terminal/PricingPage";
 import { TickerTape } from "./components/terminal/TickerTape";
 import { Kbd } from "./components/terminal/Kbd";
 import { startStream } from "./lib/ws";
@@ -77,8 +78,7 @@ export default function App({ clerkEnabled }: { clerkEnabled: boolean }) {
   const [chatBusy, setChatBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [hitLimit, setHitLimit] = useState(false);
+  const setBillingOpen = useWorkspace((s) => s.setBillingOpen);
 
   useEffect(() => {
     startStream();
@@ -111,6 +111,15 @@ export default function App({ clerkEnabled }: { clerkEnabled: boolean }) {
   useEffect(() => {
     if (view === "alerts") clearUnseen();
   }, [view, clearUnseen]);
+
+  // Make #/pricing a real route: open the pricing page on that hash (deep link /
+  // shareable URL) and close it when navigating away (browser back).
+  useEffect(() => {
+    const sync = () => setBillingOpen(window.location.hash === "#/pricing");
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, [setBillingOpen]);
 
   const ask = async (question: string) => {
     if (!question.trim() || chatBusy) return;
@@ -149,8 +158,7 @@ export default function App({ clerkEnabled }: { clerkEnabled: boolean }) {
         }
         if (res.status === 429 && detail?.code === "daily_limit") {
           answer = detail.message ?? "You've hit today's prompt limit.";
-          setHitLimit(true);
-          setUpgradeOpen(true);
+          setBillingOpen(true, true);
         } else {
           answer = "Sorry, something went wrong.";
         }
@@ -251,14 +259,7 @@ export default function App({ clerkEnabled }: { clerkEnabled: boolean }) {
             <Kbd>⌘K</Kbd>
           </span>
         </button>
-        {clerkEnabled && (
-          <PlanBadge
-            onClick={() => {
-              setHitLimit(false);
-              setUpgradeOpen(true);
-            }}
-          />
-        )}
+        {clerkEnabled && <PlanBadge />}
         <SettingsMenu />
         {clerkEnabled && <UserButton />}
       </header>
@@ -289,11 +290,7 @@ export default function App({ clerkEnabled }: { clerkEnabled: boolean }) {
       <HelpOverlay />
       <Tour />
       <Toasts />
-      <UpgradeDialog
-        open={upgradeOpen}
-        reachedLimit={hitLimit}
-        onClose={() => setUpgradeOpen(false)}
-      />
+      <PricingPage />
       {view !== "ask" && (
         <ChatWidget
           ticker={ticker}

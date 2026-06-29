@@ -19,11 +19,14 @@ interface WorkspaceState {
   paletteOpen: boolean;
   helpOpen: boolean;
   tourOpen: boolean;
+  billingOpen: boolean;
   setView: (v: View) => void;
   setTicker: (t: string) => void;
   setPaletteOpen: (open: boolean) => void;
   setHelpOpen: (open: boolean) => void;
   setTourOpen: (open: boolean) => void;
+  /** Show/hide the full-screen plans & pricing page (the #/pricing route). */
+  setBillingOpen: (open: boolean) => void;
   /** Jump to a ticker and make sure the research view is showing it. */
   openTicker: (t: string) => void;
 }
@@ -34,10 +37,12 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
   paletteOpen: false,
   helpOpen: false,
   tourOpen: false,
+  billingOpen: false,
   setView: (view) => set({ view }),
   setTicker: (ticker) => set({ ticker: ticker.toUpperCase() }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   setHelpOpen: (helpOpen) => set({ helpOpen }),
   setTourOpen: (tourOpen) => set({ tourOpen }),
+  setBillingOpen: (billingOpen) => set({ billingOpen }),
   openTicker: (t) => set({ ticker: t.toUpperCase(), view: "research" }),
 }));

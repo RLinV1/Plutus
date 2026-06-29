@@ -150,6 +150,17 @@ def plan_limits() -> dict[str, int]:
     }
 
 
+def auth_enabled() -> bool:
+    """Whether Clerk JWT verification is configured (i.e. production).
+
+    When True, every API request must carry a valid Clerk token (``api/auth.py``
+    rejects the rest with 401), so the unauthenticated 'anonymous' identity can
+    never occur — and the daily quota is enforced for everyone. When False
+    (local dev / tests, no ``CLERK_JWKS_URL``), the quota is not enforced.
+    """
+    return bool(os.environ.get("CLERK_JWKS_URL", "").strip())
+
+
 def unlimited_user_ids() -> set[str]:
     """Clerk user IDs granted unlimited prompts (admins / comped accounts).
 

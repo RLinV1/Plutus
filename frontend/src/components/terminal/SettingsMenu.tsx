@@ -10,6 +10,7 @@ export function SettingsMenu() {
   const scale = useSettings((s) => s.scale);
   const setScale = useSettings((s) => s.setScale);
   const setHelpOpen = useWorkspace((s) => s.setHelpOpen);
+  const setBillingOpen = useWorkspace((s) => s.setBillingOpen);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -69,6 +70,15 @@ export function SettingsMenu() {
             ))}
           </div>
           <div className="mt-2 space-y-0.5 border-t border-border pt-2">
+            <button
+              onClick={() => {
+                setBillingOpen(true);
+                setOpen(false);
+              }}
+              className="w-full px-2 py-1.5 text-left font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              ✦ Plans &amp; billing
+            </button>
             <button
               onClick={() => {
                 useWorkspace.getState().setTourOpen(true);

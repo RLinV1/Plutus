@@ -46,6 +46,16 @@ def _today():
     return datetime.now(timezone.utc).date()
 
 
+def _quota_exempt_dev(user_id: str) -> bool:
+    """True only for the unauthenticated dev/test identity when auth is OFF.
+
+    With auth ENABLED (production) this is always False — 'anonymous' can't even
+    occur (api/auth.py returns 401 without a valid token), and if it somehow did
+    it would be treated as a normal limited user. The quota fails closed.
+    """
+    return user_id == "anonymous" and not config.auth_enabled()
+
+
 # --------------------------------------------------------------------------- #
 # Plans + quota
 # --------------------------------------------------------------------------- #
@@ -67,7 +77,7 @@ def get_plan(user_id: str) -> str:
 
 def is_unlimited(user_id: str) -> bool:
     """Whether the user bypasses the daily quota (admin / comped / local dev)."""
-    return user_id == "anonymous" or get_plan(user_id) == "unlimited"
+    return _quota_exempt_dev(user_id) or get_plan(user_id) == "unlimited"
 
 
 def limit_for(plan: str) -> int:
@@ -87,8 +97,8 @@ def _usage_today(user_id: str) -> int:
 
 def get_status(user_id: str) -> dict:
     """Plan, today's usage, limit, and remaining — for the UI (no increment)."""
-    plan = "free" if user_id == "anonymous" else get_plan(user_id)
-    unlimited = user_id == "anonymous" or plan == "unlimited"
+    plan = get_plan(user_id)
+    unlimited = _quota_exempt_dev(user_id) or plan == "unlimited"
     if unlimited:
         return {
             "plan": plan,
@@ -114,8 +124,8 @@ def consume(user_id: str) -> dict:
     Returns ``{allowed, plan, used, limit, remaining}``. The ``anonymous`` user
     (local dev / tests, no Clerk) is always allowed and never counted.
     """
-    plan = "free" if user_id == "anonymous" else get_plan(user_id)
-    if user_id == "anonymous" or plan == "unlimited":
+    plan = get_plan(user_id)
+    if _quota_exempt_dev(user_id) or plan == "unlimited":
         return {
             "allowed": True,
             "plan": plan,

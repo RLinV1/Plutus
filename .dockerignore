@@ -17,5 +17,11 @@ frontend/node_modules/
 frontend/dist/
 frontend/smoke-shots/
 .env
+# Local env files must NOT enter the production image — Vite would bake the dev
+# pk_test Clerk key over the pk_live build ARG (Clerk then shows "development
+# mode"). Real values come from build ARGs in docker-compose.aws.yml.
+.env.local
+frontend/.env.local
+**/.env.local
 .idea/
 .vscode/

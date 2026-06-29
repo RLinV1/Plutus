@@ -194,10 +194,16 @@ def get_engine():
             _engine.dispose()
         if url.startswith("sqlite"):
             config.ensure_dirs()
-        _engine = _make_engine(url)
+        engine = _make_engine(url)
+        # Create the schema BEFORE caching the engine. If the DB isn't ready yet
+        # (e.g. Postgres still booting right after an env recreate), create_all
+        # raises — and because we haven't cached the engine, the next call
+        # retries the whole thing instead of returning a tables-less engine that
+        # would 500 every query forever.
+        PortfolioBase.metadata.create_all(engine)
+        _engine = engine
         _engine_url = url
-        _session_factory = sessionmaker(bind=_engine, expire_on_commit=False, future=True)
-        PortfolioBase.metadata.create_all(_engine)
+        _session_factory = sessionmaker(bind=engine, expire_on_commit=False, future=True)
     return _engine
 
 
