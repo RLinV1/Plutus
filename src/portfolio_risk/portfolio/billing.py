@@ -332,15 +332,20 @@ def handle_webhook(payload: bytes, sig_header: str) -> None:
     stripe = _stripe()
     secret = config.stripe_webhook_secret()
     if secret:
+        # Verify the signature (raises on tampering / wrong secret). We discard
+        # the returned StripeObject and re-parse the raw payload as plain dicts
+        # below: newer stripe-python StripeObjects don't support ``.get()``, so
+        # accessing fields off them raises ``AttributeError: get``.
         try:
-            event = stripe.Webhook.construct_event(payload, sig_header, secret)
+            stripe.Webhook.construct_event(payload, sig_header, secret)
         except Exception as exc:  # noqa: BLE001 - signature/parse failures
             raise BillingError(f"Webhook signature verification failed: {exc}") from exc
     else:
-        # No secret configured: parse without verification (dev only).
-        event = json.loads(payload)
         log.warning("processing Stripe webhook WITHOUT signature verification")
 
+    # Operate on plain dicts so field access works regardless of stripe-python
+    # version (the signature is already verified above when a secret is set).
+    event = json.loads(payload)
     typ = event["type"]
     obj = event["data"]["object"]
 
