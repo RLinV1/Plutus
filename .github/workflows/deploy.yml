@@ -30,6 +30,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Ensure EB application-versions S3 bucket exists
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          BUCKET="elasticbeanstalk-${AWS_REGION}-${ACCOUNT_ID}"
+          if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+            echo "S3 bucket s3://$BUCKET already exists."
+          else
+            echo "S3 bucket s3://$BUCKET not found — creating it."
+            if [ "$AWS_REGION" = "us-east-1" ]; then
+              # us-east-1 rejects a LocationConstraint; every other region requires one.
+              aws s3api create-bucket --bucket "$BUCKET" --region "$AWS_REGION"
+            else
+              aws s3api create-bucket --bucket "$BUCKET" --region "$AWS_REGION" \
+                --create-bucket-configuration LocationConstraint="$AWS_REGION"
+            fi
+            echo "Created s3://$BUCKET."
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

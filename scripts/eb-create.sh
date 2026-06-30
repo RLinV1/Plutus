@@ -30,6 +30,24 @@ PGPASS=$(_parse_secret "$(aws secretsmanager get-secret-value \
   --secret-id plutus/postgres-password \
   --query SecretString --output text)")
 
+# Ensure the EB application-versions S3 bucket exists. EB usually creates this
+# implicitly, but scripts/eb-terminate.sh can delete it, so recreate it here.
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+BUCKET="elasticbeanstalk-${REGION}-${ACCOUNT_ID}"
+if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+  echo "[eb-create] S3 bucket s3://$BUCKET already exists."
+else
+  echo "[eb-create] Creating S3 bucket s3://$BUCKET ..."
+  if [ "$REGION" = "us-east-1" ]; then
+    # us-east-1 rejects a LocationConstraint; every other region requires one.
+    aws s3api create-bucket --bucket "$BUCKET" --region "$REGION"
+  else
+    aws s3api create-bucket --bucket "$BUCKET" --region "$REGION" \
+      --create-bucket-configuration LocationConstraint="$REGION"
+  fi
+  echo "[eb-create] Bucket created."
+fi
+
 echo "[eb-create] Creating EB environment: $ENV_NAME (with secrets pre-loaded)"
 eb create "$ENV_NAME" \
   --instance-type t3.medium \
