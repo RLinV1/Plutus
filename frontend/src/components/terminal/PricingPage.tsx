@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api";
 import { useWorkspace } from "../../stores/workspace";
@@ -75,6 +75,10 @@ export function PricingPage() {
   const setBillingOpen = useWorkspace((s) => s.setBillingOpen);
   const close = () => setBillingOpen(false);
 
+  // Hard confirmation gate for downgrading to free (cancels the subscription).
+  const [showDowngrade, setShowDowngrade] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+
   const { data } = useQuery<BillingStatus>({
     queryKey: ["billing"],
     queryFn: api.billingStatus,
@@ -135,8 +139,96 @@ export function PricingPage() {
     (change.error as Error)?.message ||
     null;
 
+  const currentTier = TIERS.find((t) => t.plan === current);
+  const downgradeReady = confirmText.trim().toUpperCase() === "DOWNGRADE";
+  const confirmDowngrade = () => {
+    if (!downgradeReady) return;
+    setShowDowngrade(false);
+    setConfirmText("");
+    change.mutate("free");
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
+      {/* Hard confirmation gate for downgrading to free. */}
+      {showDowngrade && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-black/80 p-4">
+          <div className="w-full max-w-md border border-down bg-card p-5 font-mono">
+            <div className="mb-3 flex items-center gap-2 text-down">
+              <span className="text-lg">⚠</span>
+              <span className="text-xs font-bold uppercase tracking-wider">
+                Downgrade to Free — this cancels your subscription
+              </span>
+            </div>
+
+            <p className="mb-3 text-[0.7rem] text-muted-foreground">
+              You are on{" "}
+              <span className="font-bold text-primary">
+                {currentTier?.name ?? current}
+              </span>
+              . Switching to Free is immediate and{" "}
+              <span className="font-bold text-foreground">cannot be undone</span>{" "}
+              without subscribing again.
+            </p>
+
+            <div className="mb-3 border border-border p-3">
+              <div className="mb-2 text-[0.6rem] font-bold uppercase tracking-wider text-down">
+                What you'll lose
+              </div>
+              <ul className="space-y-1 text-[0.7rem] text-muted-foreground">
+                <li>
+                  • Daily prompts drop from{" "}
+                  <span className="font-bold text-foreground">
+                    {limits[current as keyof typeof limits] ?? "—"}/day
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-bold text-foreground">
+                    {limits.free}/day
+                  </span>
+                </li>
+                <li>• Your subscription is cancelled immediately — no remaining paid days are kept</li>
+                {(currentTier?.features ?? []).slice(0, 4).map((f) => (
+                  <li key={f} className="text-muted-foreground/70 line-through">
+                    • {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <label className="mb-1 block text-[0.65rem] text-muted-foreground">
+              Type <span className="font-bold text-down">DOWNGRADE</span> to confirm
+            </label>
+            <input
+              autoFocus
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && confirmDowngrade()}
+              placeholder="DOWNGRADE"
+              className="mb-4 w-full border border-border bg-background px-2 py-1.5 font-mono text-xs text-foreground outline-none focus:border-down"
+            />
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowDowngrade(false);
+                  setConfirmText("");
+                }}
+                className="flex-1 border border-border py-2 font-mono text-[0.625rem] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+              >
+                Keep {currentTier?.name ?? "my plan"}
+              </button>
+              <button
+                disabled={!downgradeReady || change.isPending}
+                onClick={confirmDowngrade}
+                className="flex-1 bg-down py-2 font-mono text-[0.625rem] font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {change.isPending ? "…" : "Downgrade to free"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* top bar */}
       <div className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur">
         <span className="font-mono text-lg font-bold tracking-tight text-primary">▌PLUTUS</span>
@@ -282,7 +374,10 @@ export function PricingPage() {
       return (
         <button
           disabled={busy || !billingOn}
-          onClick={() => change.mutate("free")}
+          onClick={() => {
+            setConfirmText("");
+            setShowDowngrade(true);
+          }}
           className="grid w-full place-items-center border border-border py-2 font-mono text-[0.625rem] font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
         >
           {busy ? "…" : "Downgrade to free"}
